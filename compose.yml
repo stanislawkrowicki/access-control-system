@@ -6,6 +6,7 @@ services:
     restart: always
     ports:
       - ${MOSQUITTO_PORT}:1883
+      - ${MOSQUITTO_WS_PORT}:2883
     volumes:
       - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
 
