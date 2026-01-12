@@ -5,7 +5,8 @@ spring:
     property-naming-strategy: SNAKE_CASE
   flyway:
     locations: classpath:/db/migration
-    schemas: employees
+    schemas: acs
+    default-schema: acs
     baselineOnMigrate: true
     enabled: true
   datasource:
@@ -13,6 +14,13 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/acs
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: acs
 
 mqtt:
   host: localhost

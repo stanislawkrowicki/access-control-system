@@ -31,6 +31,7 @@ dependencies {
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
 	implementation("com.hivemq:hivemq-mqtt-client:1.3.3")
+	implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
