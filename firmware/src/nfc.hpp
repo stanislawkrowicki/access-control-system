@@ -51,7 +51,7 @@ void listenToNFC(void *pvParameters)
                         nfc->PrintHexChar(data, 16);
                         Serial.println("");
 
-                        vTaskDelay(1000);
+                        vTaskDelay(pdMS_TO_TICKS(1000));
                     }
                     else
                     {
