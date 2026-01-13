@@ -22,6 +22,11 @@ spring:
       hibernate:
         default_schema: acs
 
+  web:
+    error:
+      include-message: always
+      include-binding-errors: always
+
 mqtt:
   host: localhost
   port: 1883
