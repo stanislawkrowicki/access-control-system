@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <SPI.h>
+#include <Preferences.h>
 
 #include "nfc.hpp"
 #include "wifi.hpp"
@@ -14,6 +15,8 @@
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+
+Preferences storedKeys;
 
 bool wifiConnected = false;
 
@@ -33,6 +36,10 @@ void setup(void)
       ;
   }
 
+  storedKeys.begin("keys", false);
+
+  setNFCPersistentStorage(storedKeys);
+
   const bool wifiSuccess = connectWifi();
 
   if (wifiSuccess)
@@ -41,7 +48,7 @@ void setup(void)
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    setupMqtt(mqttClient);
+    setupMqtt(mqttClient, storedKeys);
     connectToMqtt(mqttClient);
 
     wifiConnected = true;

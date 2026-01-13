@@ -7,10 +7,41 @@
 #error "secrets.hpp not found! Create it in the ./private directory by copying secrets.example.hpp and fill it with your own secrets."
 #endif
 
+static Preferences *keyStorage;
+
 bool setupNFC(Adafruit_PN532 &nfc)
 {
     nfc.begin();
     return nfc.getFirmwareVersion() > 0;
+}
+
+void setNFCPersistentStorage(Preferences &persistentStorage)
+{
+    keyStorage = &persistentStorage;
+}
+
+void openLock()
+{
+    Serial.println("Open!");
+
+    digitalWrite(BUZZER_PIN, LOW);
+    vTaskDelay(pdMS_TO_TICKS(150));
+
+    for (int i = 0; i <= 3; ++i)
+    {
+        digitalWrite(BUZZER_PIN, HIGH);
+        vTaskDelay(pdMS_TO_TICKS(150));
+        digitalWrite(BUZZER_PIN, LOW);
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
+}
+
+void accessDenied()
+{
+    Serial.println("Access denied!");
+    digitalWrite(BUZZER_PIN, HIGH);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    digitalWrite(BUZZER_PIN, LOW);
 }
 
 void listenToNFC(void *pvParameters)
@@ -25,6 +56,8 @@ void listenToNFC(void *pvParameters)
         uint8_t uidLength;
 
         success = nfc->readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+
+        bool opened = false;
 
         if (success)
         {
@@ -51,7 +84,19 @@ void listenToNFC(void *pvParameters)
                         nfc->PrintHexChar(data, 16);
                         Serial.println("");
 
-                        vTaskDelay(pdMS_TO_TICKS(1000));
+                        int storedKeysCount = keyStorage->getInt("count");
+                        for (int i = 0; i < storedKeysCount; ++i)
+                        {
+                            uint8_t storedKey[16];
+                            keyStorage->getBytes(String(i).c_str(), storedKey, 16);
+
+                            if (memcmp(data, storedKey, 16) == 0)
+                            {
+                                opened = true;
+                                openLock();
+                                break;
+                            }
+                        }
                     }
                     else
                     {
@@ -62,14 +107,17 @@ void listenToNFC(void *pvParameters)
                 {
                     Serial.println("Ooops ... authentication failed: Try another key?");
                 }
-
-                digitalWrite(BUZZER_PIN, LOW);
             }
 
             else
             {
                 Serial.println("Unknown tag type!");
             }
+        }
+
+        if (!opened)
+        {
+            accessDenied();
         }
     }
 }
