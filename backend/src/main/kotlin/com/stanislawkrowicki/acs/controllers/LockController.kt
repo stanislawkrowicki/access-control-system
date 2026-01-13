@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 class LockController(
     private val lockService: LockService
 ) {
-    @GetMapping("/")
+    @GetMapping
     fun getLocks(): ResponseEntity<List<Lock>> {
         return ResponseEntity.ok().body(lockService.getAllLocks())
     }
@@ -31,7 +31,7 @@ class LockController(
             ?: throw ResourceNotFoundException("Lock with id $id not found")
     }
 
-    @PostMapping("/")
+    @PostMapping
     fun saveLock(@RequestBody lock: Lock): ResponseEntity<Unit> {
         return ResponseEntity.ok().body(lockService.saveLock(lock));
     }
