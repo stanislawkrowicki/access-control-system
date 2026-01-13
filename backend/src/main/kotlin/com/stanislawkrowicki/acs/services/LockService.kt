@@ -29,4 +29,8 @@ class LockService(
         lockRepository.deleteById(id)
         logger.info { "Successfully deleted lock with ID $id" }
     }
+
+    fun existsById(id: String): Boolean {
+        return lockRepository.existsById(id)
+    }
 }

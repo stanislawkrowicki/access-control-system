@@ -1,6 +1,7 @@
 package com.stanislawkrowicki.acs.services
 
 import com.stanislawkrowicki.acs.database.models.UserAccessibleLock
+import com.stanislawkrowicki.acs.database.repositories.KeyRepository
 import com.stanislawkrowicki.acs.database.repositories.LockRepository
 import com.stanislawkrowicki.acs.database.repositories.UserAccessibleLockRepository
 import com.stanislawkrowicki.acs.database.repositories.UserRepository
@@ -15,10 +16,17 @@ import org.springframework.web.server.ResponseStatusException
 class AccessService(
     private val userAccessRepository: UserAccessibleLockRepository,
     private val userRepository: UserRepository,
-    private val lockRepository: LockRepository
+    private val lockRepository: LockRepository,
+    private val keyRepository: KeyRepository
 ) {
     fun canUserAccessLock(userId: Long, lockId: String): Boolean {
         return userAccessRepository.existsByUserIdAndLockId(userId, lockId)
+    }
+
+    fun getAllKeysWithAccessToLock(lockId: String): Set<String> {
+        return keyRepository.findAllKeysByLockId(lockId)
+            .map { it.payload }
+            .toSet()
     }
 
     @Transactional

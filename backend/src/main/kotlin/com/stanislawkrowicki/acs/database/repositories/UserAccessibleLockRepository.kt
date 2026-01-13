@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserAccessibleLockRepository: JpaRepository<UserAccessibleLock, Long> {
     fun existsByUserIdAndLockId(userId: Long, lockId: String): Boolean
+    fun findAllByLockId(lockId: String): List<UserAccessibleLock>
 }
