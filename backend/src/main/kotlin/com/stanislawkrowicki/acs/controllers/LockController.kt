@@ -1,6 +1,7 @@
 package com.stanislawkrowicki.acs.controllers
 
 import com.stanislawkrowicki.acs.database.models.Lock
+import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
 import com.stanislawkrowicki.acs.services.LockService
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
@@ -27,7 +28,7 @@ class LockController(
     fun getLockById(@PathVariable id: String): ResponseEntity<Lock> {
         return lockService.getLockById(id)
             ?.let { ResponseEntity.ok(it) }
-            ?: ResponseEntity.notFound().build()
+            ?: throw ResourceNotFoundException("Lock with id $id not found")
     }
 
     @PostMapping("/")

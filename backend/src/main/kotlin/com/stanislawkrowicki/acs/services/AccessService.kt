@@ -1,0 +1,42 @@
+package com.stanislawkrowicki.acs.services
+
+import com.stanislawkrowicki.acs.database.models.UserAccessibleLock
+import com.stanislawkrowicki.acs.database.repositories.LockRepository
+import com.stanislawkrowicki.acs.database.repositories.UserAccessibleLockRepository
+import com.stanislawkrowicki.acs.database.repositories.UserRepository
+import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
+import jakarta.transaction.Transactional
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
+
+@Service
+class AccessService(
+    private val userAccessRepository: UserAccessibleLockRepository,
+    private val userRepository: UserRepository,
+    private val lockRepository: LockRepository
+) {
+    fun canUserAccessLock(userId: Long, lockId: String): Boolean {
+        return userAccessRepository.existsByUserIdAndLockId(userId, lockId)
+    }
+
+    @Transactional
+    fun grantAccess(userId: Long, lockId: String): UserAccessibleLock {
+        if (canUserAccessLock(userId, lockId)) {
+            throw ResponseStatusException(HttpStatus.CONFLICT, "User already has access to this lock")
+        }
+
+        val user = userRepository.findByIdOrNull(userId)
+            ?: throw ResourceNotFoundException("User $userId not found")
+
+        val lock = lockRepository.findByIdOrNull(lockId)
+            ?: throw ResourceNotFoundException("Lock $lockId not found")
+
+        val accessRecord = UserAccessibleLock(
+            user = user,
+            lock = lock
+        )
+        return userAccessRepository.save(accessRecord)
+    }
+}
