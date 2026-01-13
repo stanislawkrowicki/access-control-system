@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/access")
+@RequestMapping("access")
 class AccessController(private val accessService: AccessService) {
     @GetMapping("/check")
     fun checkAccess(
