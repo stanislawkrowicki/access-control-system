@@ -2,6 +2,7 @@ package com.stanislawkrowicki.acs.controllers
 
 import com.stanislawkrowicki.acs.database.models.Key
 import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
+import com.stanislawkrowicki.acs.services.KeyResponse
 import com.stanislawkrowicki.acs.services.KeyService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,16 +20,16 @@ import org.springframework.web.bind.annotation.RestController
 class KeyController(private val keyService: KeyService) {
 
     @GetMapping
-    fun getAllKeys(): List<Key> = keyService.findAll()
+    fun getAllKeys(): List<KeyResponse> = keyService.findAll()
 
     @GetMapping("/{id}")
-    fun getKey(@PathVariable id: Long): Key {
+    fun getKey(@PathVariable id: Long): KeyResponse {
         return keyService.findById(id)
             ?: throw ResourceNotFoundException("Key not found")
     }
 
     @PostMapping
-    fun createKey(@RequestBody request: CreateKeyRequest): ResponseEntity<Key> {
+    fun createKey(@RequestBody request: CreateKeyRequest): ResponseEntity<KeyResponse> {
         val created = keyService.createKey(
             userId = request.userId,
             description = request.description,

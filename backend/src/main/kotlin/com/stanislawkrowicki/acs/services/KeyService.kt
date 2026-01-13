@@ -14,12 +14,15 @@ class KeyService(
     private val keyRepository: KeyRepository,
     private val userRepository: UserRepository
 ) {
-    fun findAll(): List<Key> = keyRepository.findAll()
+    fun findAll(): List<KeyResponse> {
+        val keys = keyRepository.findAll()
+        return keys.map { it.toResponse() }
+    }
 
-    fun findById(id: Long): Key? = keyRepository.findByIdOrNull(id)
+    fun findById(id: Long): KeyResponse? = keyRepository.findByIdOrNull(id)?.toResponse()
 
     @Transactional
-    fun createKey(userId: Long, description: String, payload: String): Key {
+    fun createKey(userId: Long, description: String, payload: String): KeyResponse {
         if (payload.length != 32)
             throw BadRequestException("Payload should be 32 bytes.")
 
@@ -32,7 +35,7 @@ class KeyService(
             owner = owner
         )
 
-        return keyRepository.save(newKey)
+        return keyRepository.save(newKey).toResponse()
     }
 
     @Transactional
@@ -44,3 +47,17 @@ class KeyService(
         keyRepository.deleteById(id)
     }
 }
+
+fun Key.toResponse() = KeyResponse(
+    id = this.id!!,
+    description = this.description,
+    payload = this.payload,
+    ownerId = this.owner.id!!,
+)
+
+data class KeyResponse(
+    val id: Long,
+    val description: String,
+    val payload: String,
+    val ownerId: Long
+)
