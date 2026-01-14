@@ -21,6 +21,10 @@ class KeyService(
 
     fun findById(id: Long): KeyResponse? = keyRepository.findByIdOrNull(id)?.toResponse()
 
+    fun findAllByOwnerId(userId: Long): List<KeyResponse> {
+        return keyRepository.findAllByOwnerId(userId).map { it.toResponse() }
+    }
+
     @Transactional
     fun createKey(userId: Long, description: String, payload: String): KeyResponse {
         if (payload.length != 32)

@@ -21,4 +21,6 @@ interface KeyRepository: JpaRepository<Key, Long> {
         WHERE al.lock.id = :lockId
     """)
     fun findAllKeyPayloadsByLockId(lockId: String): Set<String>
+
+    fun findAllByOwnerId(ownerId: Long): Set<Key>
 }

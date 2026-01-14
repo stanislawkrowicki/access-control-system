@@ -1,6 +1,5 @@
 package com.stanislawkrowicki.acs.controllers
 
-import com.stanislawkrowicki.acs.database.models.Key
 import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
 import com.stanislawkrowicki.acs.services.KeyResponse
 import com.stanislawkrowicki.acs.services.KeyService
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -20,7 +19,13 @@ import org.springframework.web.bind.annotation.RestController
 class KeyController(private val keyService: KeyService) {
 
     @GetMapping
-    fun getAllKeys(): List<KeyResponse> = keyService.findAll()
+    fun getAllKeys(@RequestParam(required = false) ownerId: Long?): List<KeyResponse> {
+        return if (ownerId != null) {
+            keyService.findAllByOwnerId(ownerId)
+        } else {
+            keyService.findAll()
+        }
+    }
 
     @GetMapping("/{id}")
     fun getKey(@PathVariable id: Long): KeyResponse {

@@ -19,28 +19,31 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { useQuery, keepPreviousData } from '@tanstack/react-query'; // Import TanStack Query
+import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import PageContainer from './PageContainer';
 
 const INITIAL_PAGE_SIZE = 10;
 
-interface UserApiData {
-    id: string;
-    username: string;
+interface KeyApiData {
+    id: number
+    description: string
+    payload: string
 }
 
-interface UserGridRow {
-    id: string;
-    username: string;
+interface KeyGridRow {
+    id: number
+    description: string
+    payload: string
 }
 
-const fetchUsers = async (
+const fetchKeys = async (
+    ownerId: number,
     pagination: GridPaginationModel,
     sort: GridSortModel,
     filter: GridFilterModel
-): Promise<{ rows: UserGridRow[]; rowCount: number }> => {
-    const url = new URL('http://localhost:8080/users');
+): Promise<{ rows: KeyGridRow[]; rowCount: number }> => {
+    const url = new URL(`http://localhost:8080/keys?ownerId=${ownerId}`);
 
     const response = await fetch(url.toString());
 
@@ -48,11 +51,12 @@ const fetchUsers = async (
         throw new Error('Network response was not ok');
     }
 
-    const data: UserApiData[] = await response.json();
+    const data: KeyApiData[] = await response.json();
 
-    const rows = data.map((user) => ({
-        id: user.id,
-        username: user.username,
+    const rows = data.map((key) => ({
+        id: key.id,
+        description: key.description,
+        payload: key.payload
     }));
 
     return {
@@ -61,10 +65,17 @@ const fetchUsers = async (
     };
 };
 
-export default function UserList() {
+export default function UserKeyList() {
     const { pathname } = useLocation();
+    const { userId } = useParams()
+
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+
+    const numericId = Number(userId)
+
+    if (isNaN(numericId))
+        navigate("/users")
 
     const [paginationModel, setPaginationModel] = React.useState<GridPaginationModel>({
         page: searchParams.get('page') ? Number(searchParams.get('page')) : 0,
@@ -89,7 +100,7 @@ export default function UserList() {
         refetch
     } = useQuery({
         queryKey: ['locks', paginationModel, sortModel, filterModel],
-        queryFn: () => fetchUsers(paginationModel, sortModel, filterModel),
+        queryFn: () => fetchKeys(numericId, paginationModel, sortModel, filterModel),
         placeholderData: keepPreviousData,
     });
 
@@ -130,64 +141,30 @@ export default function UserList() {
     );
 
     const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
-        ({ row }) => navigate(`/users/${row.id}/edit`),
+        ({ row }) => navigate(`/users/${userId}/keys/${row.id}/edit`),
         [navigate],
     );
 
     const handleCreateClick = React.useCallback(() => {
-        navigate('/users/new'); // Consider changing to /locks/new
+        navigate(`/users/${userId}/keys/new`);
     }, [navigate]);
 
     const handleRowEdit = React.useCallback(
-        (row: UserGridRow) => () => {
-            navigate(`/users/${row.id}/edit`);
-        },
-        [navigate],
-    );
-
-    const handleShowKeys = React.useCallback(
-        (row: UserGridRow) => () => {
-            navigate(`/users/${row.id}/keys`);
+        (row: KeyGridRow) => () => {
+            navigate(`/users/${userId}/keys/${row.id}/edit`);
         },
         [navigate],
     );
 
     const columns = React.useMemo<GridColDef[]>(
         () => [
-            { field: 'id', headerName: 'ID', width: 150 },
-            { field: 'username', headerName: 'Name', width: 200 },
-            {
-                field: 'keys',
-                type: 'actions',
-                headerName: 'Keys',
-                getActions: ({ row }) => [
-                    <GridActionsCellItem
-                        key="edit-item"
-                        icon={<KeyIcon />}
-                        label="Manage keys"
-                        onClick={handleShowKeys(row)}
-                    />,
-                ],
-            },
-            {
-                field: 'actions',
-                type: 'actions',
-                flex: 1,
-                align: 'right',
-                getActions: ({ row }) => [
-                    <GridActionsCellItem
-                        key="edit-item"
-                        icon={<EditIcon />}
-                        label="Edit"
-                        onClick={handleRowEdit(row)}
-                    />,
-                ],
-            }
+            { field: 'description', headerName: 'Description', width: 300 },
+            { field: 'payload', headerName: 'Payload', width: 200 }
         ],
         [handleRowEdit]
     );
 
-    const pageTitle = 'Users';
+    const pageTitle = `${userId}'s keys`
 
     return (
         <PageContainer
