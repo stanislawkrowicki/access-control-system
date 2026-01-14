@@ -131,17 +131,17 @@ export default function LockList() {
     );
 
     const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
-        ({ row }) => navigate(`/employees/${row.id}`), // Consider changing to /locks/
+        ({ row }) => navigate(`/locks/${row.id}/edit`),
         [navigate],
     );
 
     const handleCreateClick = React.useCallback(() => {
-        navigate('/employees/new'); // Consider changing to /locks/new
+        navigate('/locks/new');
     }, [navigate]);
 
     const handleRowEdit = React.useCallback(
         (row: LockGridRow) => () => {
-            navigate(`/employees/${row.id}/edit`);
+            navigate(`/locks/${row.id}/edit`);
         },
         [navigate],
     );
