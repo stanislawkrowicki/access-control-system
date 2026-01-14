@@ -1,0 +1,47 @@
+{
+  "name": "material-ui-vite-tailwind-ts",
+  "private": true,
+  "version": "7.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/icons-material": "latest",
+    "@mui/material": "latest",
+    "@mui/utils": "latest",
+    "@mui/x-data-grid": "latest",
+    "@mui/x-data-grid-pro": "latest",
+    "@mui/x-date-pickers": "latest",
+    "@mui/x-date-pickers-pro": "latest",
+    "@tailwindcss/vite": "latest",
+    "@tanstack/react-query": "^5.90.17",
+    "@tanstack/react-query-devtools": "^5.91.2",
+    "dayjs": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ],
+    "ignoredBuiltDependencies": [
+      "@mui/x-telemetry"
+    ]
+  }
+}
