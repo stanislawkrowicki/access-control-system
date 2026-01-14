@@ -6,7 +6,7 @@ import Toolbar from '@mui/material/Toolbar';
 import { Outlet } from 'react-router';
 import DashboardHeader from './DashboardHeader';
 import DashboardSidebar from './DashboardSidebar';
-import SitemarkIcon from './SitemarkIcon';
+import NfcIcon from '@mui/icons-material/Nfc';
 
 export default function DashboardLayout() {
   const theme = useTheme();
@@ -53,13 +53,13 @@ export default function DashboardLayout() {
         position: 'relative',
         display: 'flex',
         overflow: 'hidden',
-        height: '100%',
-        width: '100%',
+        height: '100vh',
+        width: '100vw',
       }}
     >
       <DashboardHeader
-        logo={<SitemarkIcon />}
-        title=""
+        logo={<NfcIcon />}
+        title="Access Control System"
         menuOpen={isNavigationExpanded}
         onToggleMenu={handleToggleHeaderMenu}
       />
