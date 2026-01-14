@@ -130,17 +130,17 @@ export default function UserList() {
     );
 
     const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
-        ({ row }) => navigate(`/employees/${row.id}`), // Consider changing to /locks/
+        ({ row }) => navigate(`/users/${row.id}/edit`),
         [navigate],
     );
 
     const handleCreateClick = React.useCallback(() => {
-        navigate('/employees/new'); // Consider changing to /locks/new
+        navigate('/users/new'); // Consider changing to /locks/new
     }, [navigate]);
 
     const handleRowEdit = React.useCallback(
         (row: UserGridRow) => () => {
-            navigate(`/employees/${row.id}/edit`);
+            navigate(`/users/${row.id}/edit`);
         },
         [navigate],
     );

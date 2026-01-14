@@ -15,6 +15,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import LockList from "./components/LockList.tsx";
 import UserList from "./components/UserList.tsx";
+import UserCreate from "./components/UserCreate.tsx";
 
 const router = createHashRouter([
     {
@@ -27,6 +28,10 @@ const router = createHashRouter([
             {
                 path: '/users',
                 Component: UserList,
+            },
+            {
+                path: '/users/new',
+                Component: UserCreate,
             },
             {
                 path: '*',
