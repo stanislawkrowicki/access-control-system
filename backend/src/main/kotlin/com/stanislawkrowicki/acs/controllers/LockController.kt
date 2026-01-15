@@ -2,6 +2,7 @@ package com.stanislawkrowicki.acs.controllers
 
 import com.stanislawkrowicki.acs.database.models.Lock
 import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
+import com.stanislawkrowicki.acs.services.DeviceStatusService
 import com.stanislawkrowicki.acs.services.LockService
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
@@ -17,11 +18,20 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/locks")
 @Validated
 class LockController(
-    private val lockService: LockService
+    private val lockService: LockService,
+    private val deviceStatusService: DeviceStatusService
 ) {
     @GetMapping
-    fun getLocks(): ResponseEntity<List<Lock>> {
-        return ResponseEntity.ok().body(lockService.getAllLocks())
+    fun getLocks(): List<LockResponse> {
+        val locks = lockService.getAllLocks()
+
+        return locks.map { lock ->
+            LockResponse(
+                id = lock.id,
+                name = lock.name,
+                online = deviceStatusService.isDeviceOnline(lock.id)
+            )
+        }
     }
 
     @GetMapping("/{id}")
@@ -42,3 +52,9 @@ class LockController(
         return ResponseEntity.ok().build()
     }
 }
+
+data class LockResponse(
+    val id: String,
+    val name: String,
+    val online: Boolean
+)

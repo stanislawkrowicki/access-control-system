@@ -27,12 +27,13 @@ const INITIAL_PAGE_SIZE = 10;
 interface LockApiData {
     id: string;
     name: string;
+    online: boolean
 }
 
 interface LockGridRow {
     id: string;
     description: string;
-    status: string;
+    online: boolean;
 }
 
 const fetchLocks = async (
@@ -53,7 +54,7 @@ const fetchLocks = async (
     const rows = data.map((lock) => ({
         id: lock.id,
         description: lock.name,
-        status: 'Online',
+        online: lock.online
     }));
 
     return {
@@ -151,17 +152,17 @@ export default function LockList() {
             { field: 'id', headerName: 'ID', width: 150 },
             { field: 'description', headerName: 'Description', width: 200 },
             {
-                field: 'status',
+                field: 'online',
                 headerName: 'Status',
                 renderCell: (params) => (
                     <Box sx={{
-                        color: 'success.main',
+                        color: params.value ? 'success.main' : 'grey',
                         fontWeight: 'bold',
                         display: 'flex',
                         alignItems: 'center',
                         height: '100%'
                     }}>
-                        ● {params.value}
+                        ● {params.value ? 'Online' : 'Offline'}
                     </Box>
                 )
             },
