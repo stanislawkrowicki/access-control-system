@@ -455,4 +455,13 @@ export const inputsCustomizations: Components<Theme> = {
       }),
     },
   },
+  MuiAutocomplete: {
+    styleOverrides: {
+      root: {
+        '& .MuiAutocomplete-endAdornment': {
+          ["margin-right"]: '-8px',
+        }
+      }
+    }
+  }
 };
