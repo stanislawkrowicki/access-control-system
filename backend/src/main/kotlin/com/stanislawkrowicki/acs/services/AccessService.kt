@@ -1,5 +1,6 @@
 package com.stanislawkrowicki.acs.services
 
+import com.stanislawkrowicki.acs.database.models.User
 import com.stanislawkrowicki.acs.database.models.UserAccessibleLock
 import com.stanislawkrowicki.acs.database.repositories.KeyRepository
 import com.stanislawkrowicki.acs.database.repositories.LockRepository
@@ -29,6 +30,17 @@ class AccessService(
             .toSet()
     }
 
+    fun getAllUsersWithAccessToLock(lockId: String): List<UsersWithAccessResponse> {
+        val users = userAccessRepository.findUsersByLockId(lockId)
+
+        return users.map { user ->
+            UsersWithAccessResponse(
+                userId = user.id!!,
+                username = user.username
+            )
+        }
+    }
+
     @Transactional
     fun grantAccess(userId: Long, lockId: String): UserAccessibleLock {
         if (canUserAccessLock(userId, lockId)) {
@@ -48,3 +60,8 @@ class AccessService(
         return userAccessRepository.save(accessRecord)
     }
 }
+
+data class UsersWithAccessResponse(
+    val userId: Long,
+    val username: String
+)

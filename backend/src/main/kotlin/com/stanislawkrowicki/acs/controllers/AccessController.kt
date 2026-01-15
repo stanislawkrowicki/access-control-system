@@ -1,9 +1,12 @@
 package com.stanislawkrowicki.acs.controllers
 
+import com.stanislawkrowicki.acs.database.models.User
 import com.stanislawkrowicki.acs.services.AccessService
+import com.stanislawkrowicki.acs.services.UsersWithAccessResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -24,6 +27,11 @@ class AccessController(private val accessService: AccessService) {
             ResponseEntity.ok().build()
         else
             ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+    }
+
+    @GetMapping("/lock/{lockId}")
+    fun getUsersWithAccessToLock(@PathVariable lockId: String): List<UsersWithAccessResponse> {
+        return accessService.getAllUsersWithAccessToLock(lockId)
     }
 
     @PostMapping("/grant")

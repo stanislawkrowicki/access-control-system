@@ -1,13 +1,11 @@
 import * as React from 'react';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import {
     DataGrid,
-    GridActionsCellItem,
     GridColDef,
     GridFilterModel,
     GridPaginationModel,
@@ -15,32 +13,33 @@ import {
     GridEventListener,
     gridClasses,
 } from '@mui/x-data-grid';
-import AddIcon from '@mui/icons-material/Add';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import EditIcon from '@mui/icons-material/Edit';
-import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import { useQuery, keepPreviousData } from '@tanstack/react-query'; // Import TanStack Query
+import PersonIcon from '@mui/icons-material/Person';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import PageContainer from './PageContainer';
+import Button from "@mui/material/Button";
+import AddIcon from "@mui/icons-material/Add";
 
 const INITIAL_PAGE_SIZE = 10;
 
-interface LockApiData {
-    id: string;
-    name: string;
+interface UserAccessApiData {
+    user_id: number;
+    username: string;
 }
 
-interface LockGridRow {
-    id: string;
-    description: string;
-    status: string;
+interface UserAccessGridRow {
+    id: number; // Mapped from user_id
+    username: string;
 }
 
-const fetchLocks = async (
+const fetchLockUsers = async (
+    lockId: string,
     pagination: GridPaginationModel,
     sort: GridSortModel,
     filter: GridFilterModel
-): Promise<{ rows: LockGridRow[]; rowCount: number }> => {
-    const url = new URL('http://localhost:8080/locks');
+): Promise<{ rows: UserAccessGridRow[]; rowCount: number }> => {
+    const url = new URL(`http://localhost:8080/access/lock/${lockId}`);
 
     const response = await fetch(url.toString());
 
@@ -48,12 +47,11 @@ const fetchLocks = async (
         throw new Error('Network response was not ok');
     }
 
-    const data: LockApiData[] = await response.json();
+    const data: UserAccessApiData[] = await response.json();
 
-    const rows = data.map((lock) => ({
-        id: lock.id,
-        description: lock.name,
-        status: 'Online',
+    const rows = data.map((user) => ({
+        id: user.user_id,
+        username: user.username,
     }));
 
     return {
@@ -62,10 +60,18 @@ const fetchLocks = async (
     };
 };
 
-export default function LockList() {
+export default function LockAccessList() {
     const { pathname } = useLocation();
+    const { lockId } = useParams();
+
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+
+    React.useEffect(() => {
+        if (!lockId) {
+            navigate('/locks');
+        }
+    }, [lockId, navigate]);
 
     const [paginationModel, setPaginationModel] = React.useState<GridPaginationModel>({
         page: searchParams.get('page') ? Number(searchParams.get('page')) : 0,
@@ -89,9 +95,10 @@ export default function LockList() {
         error,
         refetch
     } = useQuery({
-        queryKey: ['locks', paginationModel, sortModel, filterModel],
-        queryFn: () => fetchLocks(paginationModel, sortModel, filterModel),
+        queryKey: ['lock-access', lockId, paginationModel, sortModel, filterModel],
+        queryFn: () => fetchLockUsers(lockId!, paginationModel, sortModel, filterModel),
         placeholderData: keepPreviousData,
+        enabled: !!lockId,
     });
 
     const handlePaginationModelChange = React.useCallback(
@@ -131,64 +138,42 @@ export default function LockList() {
     );
 
     const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
-        ({ row }) => navigate(`/locks/${row.id}/access`),
+        ({ row }) => navigate(`/users/${row.id}/keys`),
         [navigate],
     );
 
-    const handleCreateClick = React.useCallback(() => {
-        navigate('/locks/new');
+    const handleGrantClick = React.useCallback(() => {
+        navigate(`/locks/${lockId}/grant`);
     }, [navigate]);
-
-    const handleRowEdit = React.useCallback(
-        (row: LockGridRow) => () => {
-            navigate(`/locks/${row.id}/edit`);
-        },
-        [navigate],
-    );
 
     const columns = React.useMemo<GridColDef[]>(
         () => [
-            { field: 'id', headerName: 'ID', width: 150 },
-            { field: 'description', headerName: 'Description', width: 200 },
+            { field: 'id', headerName: 'User ID', width: 100 },
             {
-                field: 'status',
-                headerName: 'Status',
+                field: 'username',
+                headerName: 'Username',
+                width: 300,
                 renderCell: (params) => (
-                    <Box sx={{
-                        color: 'success.main',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        height: '100%'
-                    }}>
-                        ● {params.value}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PersonIcon color="action" fontSize="small" />
+                        {params.value}
                     </Box>
                 )
             },
-            {
-                field: 'actions',
-                type: 'actions',
-                flex: 1,
-                align: 'right',
-                getActions: ({ row }) => [
-                    <GridActionsCellItem
-                        key="edit-item"
-                        icon={<EditIcon />}
-                        label="Edit"
-                        onClick={handleRowEdit(row)}
-                    />,
-                ],
-            }
         ],
-        [handleRowEdit]
+        []
     );
 
-    const pageTitle = 'Locks';
+    const pageTitle = `Access for lock ${lockId}`;
 
     return (
         <PageContainer
             title={pageTitle}
-            breadcrumbs={[{ title: pageTitle }]}
+            breadcrumbs={[
+                { title: 'Locks', path: '/locks' },
+                { title: lockId || 'Unknown', path: `/locks` },
+                { title: 'Access List' }
+            ]}
             actions={
                 <Stack direction="row" alignItems="center" spacing={1}>
                     <Tooltip title="Reload data" placement="right" enterDelay={1000}>
@@ -200,10 +185,10 @@ export default function LockList() {
                     </Tooltip>
                     <Button
                         variant="contained"
-                        onClick={handleCreateClick}
+                        onClick={handleGrantClick}
                         startIcon={<AddIcon />}
                     >
-                        Create
+                        Grant access
                     </Button>
                 </Stack>
             }

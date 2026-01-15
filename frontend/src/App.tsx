@@ -19,6 +19,8 @@ import UserCreate from "./components/UserCreate.tsx";
 import LockCreate from "./components/LockCreate.tsx";
 import UserKeyList from "./components/UserKeyList.tsx";
 import UserKeyCreate from "./components/UserKeyCreate.tsx";
+import LockAccessList from "./components/LockAccessList.tsx";
+import LockAccessGrant from "./components/LockAccessGrant.tsx";
 
 const router = createHashRouter([
     {
@@ -31,6 +33,14 @@ const router = createHashRouter([
             {
                 path: '/locks/new',
                 Component: LockCreate
+            },
+            {
+                path: '/locks/:lockId/access',
+                Component: LockAccessList
+            },
+            {
+                path: '/locks/:lockId/grant',
+                Component: LockAccessGrant,
             },
             {
                 path: '/users',
