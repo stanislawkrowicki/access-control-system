@@ -4,6 +4,9 @@ import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
 import com.stanislawkrowicki.acs.database.repositories.KeyRepository
+import com.stanislawkrowicki.acs.database.repositories.LockRepository
+import com.stanislawkrowicki.acs.mqtt.handlers.LogHandler
+import com.stanislawkrowicki.acs.mqtt.handlers.MqttMessageHandler
 import com.stanislawkrowicki.acs.services.DeviceStatusService
 import com.stanislawkrowicki.acs.services.LockService
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -11,6 +14,7 @@ import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import tools.jackson.databind.ObjectMapper
+import java.nio.ByteBuffer
 
 private val logger = KotlinLogging.logger {}
 
@@ -19,14 +23,19 @@ class MqttService(
     private val client: Mqtt5AsyncClient,
     private val deviceStatusService: DeviceStatusService,
     private val keyRepository: KeyRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val handlers: List<MqttMessageHandler>,
+    private val lockRepository: LockRepository
 ) {
+    private val handlerMap = handlers.associateBy {
+        it.javaClass.simpleName.removeSuffix("Handler").lowercase()
+    }
 
     @PostConstruct
     fun start() {
         connect()
-        subscribe()
         subscribeToDiscovery()
+        subscribeToDeviceMessages()
     }
 
     fun publish(message: String) {
@@ -86,19 +95,42 @@ class MqttService(
         logger.info { "MQTT subscribed to ${MqttTopic.DISCOVERY.string} topic"}
     }
 
-    private fun subscribe() {
+    private fun subscribeToDeviceMessages() {
         client.subscribeWith()
-            .topicFilter(MqttTopic.GENERAL.string)
+            .topicFilter("$MQTT_CLIENT_MESSAGE_PREFIX/+/+")
             .qos(MqttQos.AT_LEAST_ONCE)
             .callback { publish: Mqtt5Publish ->
-                val payload = publish.payload.orElse(null)?.let { buffer ->
-                    val bytes = ByteArray(buffer.remaining())
-                    buffer.get(bytes)
-                    String(bytes)
+                val splitTopic = publish.topic.toString().split("/")
+
+                if (splitTopic.size != 3) {
+                    logger.error { "Received message on strange topic: ${publish.topic}"}
+                    return@callback
                 }
-                logger.info { "Received message on general: $payload" }
+
+                val deviceId = splitTopic[1];
+
+                if (!lockRepository.existsById(deviceId)) {
+                    logger.warn { "Received a message on ${splitTopic[2]} from a device that does not exist: $deviceId" }
+                    return@callback
+                }
+
+                val messageType = MqttClientMessageType.entries.find { it.string == splitTopic[2] }
+
+                if (messageType == null) {
+                    logger.warn { "Received unknown message type: ${splitTopic[2]}" }
+                    return@callback
+                }
+
+                val payload = publish.payload
+
+                if (payload.isPresent)
+                    handleMessage(messageType, deviceId, payload.get())
+                else
+                    handleEmptyMessage(messageType, deviceId)
             }
             .send()
+
+        logger.info { "MQTT subscribed to $MQTT_CLIENT_MESSAGE_PREFIX/+/+ topic"}
     }
 
     private fun onDiscover(deviceId: String) {
@@ -122,5 +154,20 @@ class MqttService(
         } catch (e: Exception) {
             logger.error(e) { "Failed to sync keys with device $deviceId" }
         }
+    }
+
+    private fun handleEmptyMessage(messageType: MqttClientMessageType, deviceId: String) {
+        logger.error { "Received empty message with type $messageType from $deviceId" }
+    }
+
+    private fun handleMessage(messageType: MqttClientMessageType, deviceId: String, buffer: ByteBuffer) {
+        val payload = ByteArray(buffer.remaining())
+        buffer.get(payload)
+
+        val handler = handlerMap[messageType.string]
+        if (handler != null)
+            handler.handle(deviceId, payload)
+        else
+            logger.error { "No handler found for type $messageType.string" }
     }
 }
