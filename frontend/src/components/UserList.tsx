@@ -192,7 +192,6 @@ export default function UserList() {
     return (
         <PageContainer
             title={pageTitle}
-            breadcrumbs={[{ title: pageTitle }]}
             actions={
                 <Stack direction="row" alignItems="center" spacing={1}>
                     <Tooltip title="Reload data" placement="right" enterDelay={1000}>
