@@ -196,9 +196,24 @@ export default function LogList() {
                 field: 'username',
                 headerName: 'User',
                 width: 200,
-                valueGetter: (_, row) => row.user?.username
+                valueGetter: (_, row) => row.user?.username || 'Unknown'
             },
-            { field: 'had_access', headerName: 'Accessed', width: 100},
+            {
+                field: 'had_access',
+                headerName: 'Accessed',
+                width: 100,
+                renderCell: (params) => (
+                    <Box sx={{
+                        color: params.value ? 'success.main' : 'error.main',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '100%'
+                    }}>
+                        {params.value ? 'Yes' : 'No'}
+                    </Box>
+                )
+            },
             { field: 'message', headerName: 'Message', width: 400}
         ],
         []
