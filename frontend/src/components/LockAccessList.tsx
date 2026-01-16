@@ -11,7 +11,7 @@ import {
     GridPaginationModel,
     GridSortModel,
     GridEventListener,
-    gridClasses,
+    gridClasses, GridActionsCellItem,
 } from '@mui/x-data-grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PersonIcon from '@mui/icons-material/Person';
@@ -20,6 +20,8 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import PageContainer from './PageContainer';
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import useNotifications from "../hooks/useNotifications/useNotifications.tsx";
 
 const INITIAL_PAGE_SIZE = 10;
 
@@ -60,12 +62,40 @@ const fetchLockUsers = async (
     };
 };
 
+const postRevokeAccess = async (
+    userId: number,
+    lockId: string | undefined
+) => {
+    if (lockId === undefined) {
+        console.error('Tried to revoke access but lockId is undefined!')
+        return;
+    }
+
+    const url = new URL(`http://localhost:8080/access/revoke`)
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            lock_id: lockId
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error revoking access: ${response.statusText}`);
+    }
+}
+
 export default function LockAccessList() {
     const { pathname } = useLocation();
     const { lockId } = useParams();
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const notifications = useNotifications();
 
     React.useEffect(() => {
         if (!lockId) {
@@ -137,9 +167,27 @@ export default function LockAccessList() {
         [navigate, pathname, searchParams],
     );
 
-    const handleRowClick = React.useCallback<GridEventListener<'rowClick'>>(
-        ({ row }) => navigate(`/users/${row.id}/keys`),
-        [navigate],
+    const handleRevokeAccess = React.useCallback(
+        (row: UserAccessGridRow) => async () => {
+            try {
+                await postRevokeAccess(row.id, lockId)
+                notifications.show("Access revoked", {
+                    severity: 'success',
+                    autoHideDuration: 3000,
+                })
+                await refetch()
+            } catch (revokeError) {
+                notifications.show(
+                    `Failed to revoke access. Reason: ${(revokeError as Error).message}`,
+                    {
+                        severity: 'error',
+                        autoHideDuration: 3000,
+                    },
+                );
+                throw revokeError;
+            }
+        },
+        [postRevokeAccess, notifications, refetch],
     );
 
     const handleGrantClick = React.useCallback(() => {
@@ -160,8 +208,33 @@ export default function LockAccessList() {
                     </Box>
                 )
             },
+            {
+                field: 'actions',
+                type: 'actions',
+                flex: 1,
+                align: 'right',
+                sortable: false, // Important: disable sorting on button columns
+                renderCell: ({ row }) => (
+                    <IconButton
+                        aria-label="revoke access"
+                        onClick={handleRevokeAccess(row)}
+                        size="small"
+                        sx={{
+                            '&': {
+                                bgcolor: 'error.main',
+                                color: 'white',
+                            },
+                            '&:hover': {
+                                bgcolor: 'error.dark',
+                            },
+                        }}
+                    >
+                        <DeleteIcon fontSize="small" />
+                    </IconButton>
+                ),
+            }
         ],
-        []
+        [handleRevokeAccess]
     );
 
     const pageTitle = `Access for lock ${lockId}`;
@@ -220,7 +293,6 @@ export default function LockAccessList() {
                         onFilterModelChange={handleFilterModelChange}
 
                         disableRowSelectionOnClick
-                        onRowClick={handleRowClick}
 
                         initialState={{
                             pagination: { paginationModel: { pageSize: INITIAL_PAGE_SIZE } },

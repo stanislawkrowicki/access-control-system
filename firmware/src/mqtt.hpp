@@ -13,6 +13,7 @@
 static Preferences *persistentStore = nullptr;
 
 PubSubClient *mqttClient;
+bool connected = false;
 
 uint8_t hexCharToInt(char c)
 {
@@ -31,6 +32,18 @@ std::string getSyncKeysTopicName()
     return topic;
 }
 
+std::string getAddKeyTopicName()
+{
+    std::string topic = "private/" + DEVICE_NAME + "/add-key";
+    return topic;
+}
+
+std::string getRemoveKeyTopicName()
+{
+    std::string topic = "private/" + DEVICE_NAME + "/remove-key";
+    return topic;
+}
+
 void logInfo(String message)
 {
     JsonDocument doc;
@@ -45,6 +58,10 @@ void logInfo(String message)
     Serial.println("Publishing info");
     Serial.println(payload);
     Serial.println(topic.c_str());
+
+    if (!mqttClient->connected())
+        return;
+
     bool success = mqttClient->publish(topic.c_str(), payload);
 
     if (!success)
@@ -59,6 +76,10 @@ void logInfo(String message)
 
 void logOpenAttempt(const uint8_t *key, bool success)
 {
+    // offline mode
+    if (!connected)
+        return;
+
     // 16 bytes * 2 chars/byte + 1 null terminator = 33 chars
     char keyHex[33];
     for (int i = 0; i < 16; i++)
@@ -79,7 +100,8 @@ void logOpenAttempt(const uint8_t *key, bool success)
 
     std::string topic = "client/" + DEVICE_NAME + "/log";
 
-    mqttClient->publish(topic.c_str(), payload);
+    if (mqttClient->connected())
+        mqttClient->publish(topic.c_str(), payload);
 }
 
 void subscribeToSyncKeys()
@@ -90,6 +112,128 @@ void subscribeToSyncKeys()
     Serial.println(topic.c_str());
 
     mqttClient->subscribe(topic.c_str());
+}
+
+void subscribeToAddAccess()
+{
+    std::string topic = getAddKeyTopicName();
+    Serial.print("Subscribing to MQTT topic ");
+    Serial.println(topic.c_str());
+    mqttClient->subscribe(topic.c_str());
+}
+
+void subscribeToRemoveAccess()
+{
+    std::string topic = getRemoveKeyTopicName();
+    Serial.print("Subscribing to MQTT topic ");
+    Serial.println(topic.c_str());
+    mqttClient->subscribe(topic.c_str());
+}
+
+void handleAddKey(byte *payload, unsigned int length)
+{
+    if (length != 32)
+    {
+        Serial.print(F("handleAddKey: Invalid payload length. Expected 32, got: "));
+        Serial.println(length);
+        return;
+    }
+
+    uint8_t newKeyBin[16];
+    for (int j = 0; j < 16; j++)
+    {
+        char highNibbleChar = (char)payload[j * 2];
+        char lowNibbleChar = (char)payload[j * 2 + 1];
+
+        newKeyBin[j] = (hexCharToInt(highNibbleChar) << 4) |
+                       hexCharToInt(lowNibbleChar);
+    }
+
+    int count = persistentStore->getInt("count", 0);
+    uint8_t storedKey[16];
+
+    for (int i = 0; i < count; i++)
+    {
+        persistentStore->getBytes(String(i).c_str(), storedKey, 16);
+        if (memcmp(newKeyBin, storedKey, 16) == 0)
+        {
+            Serial.println(F("handleAddKey: Key already exists. Skipping."));
+            return;
+        }
+    }
+
+    size_t written = persistentStore->putBytes(String(count).c_str(), newKeyBin, 16);
+
+    if (written == 16)
+    {
+        persistentStore->putInt("count", count + 1);
+        Serial.print(F("Added new key at index: "));
+        Serial.println(count);
+    }
+    else
+    {
+        Serial.println(F("handleAddKey: Failed to write to storage."));
+    }
+}
+
+void handleRemoveKey(byte *payload, unsigned int length)
+{
+    if (length != 32)
+    {
+        Serial.print(F("handleRemoveKey: Invalid payload length. Expected 32, got: "));
+        Serial.println(length);
+        return;
+    }
+
+    uint8_t targetKey[16];
+    for (int j = 0; j < 16; j++)
+    {
+        char highNibbleChar = (char)payload[j * 2];
+        char lowNibbleChar = (char)payload[j * 2 + 1];
+
+        targetKey[j] = (hexCharToInt(highNibbleChar) << 4) |
+                       hexCharToInt(lowNibbleChar);
+    }
+
+    int count = persistentStore->getInt("count", 0);
+    int foundIndex = -1;
+    uint8_t tempKey[16];
+
+    for (int i = 0; i < count; i++)
+    {
+        persistentStore->getBytes(String(i).c_str(), tempKey, 16);
+        if (memcmp(tempKey, targetKey, 16) == 0)
+        {
+            foundIndex = i;
+            break;
+        }
+    }
+
+    if (foundIndex == -1)
+    {
+        Serial.println(F("handleRemoveKey: Key not found."));
+        return;
+    }
+
+    int lastIndex = count - 1;
+
+    // To avoid reordering the keys, we put the last one in place of the deleted one
+    if (foundIndex != lastIndex)
+    {
+        uint8_t lastKey[16];
+        persistentStore->getBytes(String(lastIndex).c_str(), lastKey, 16);
+
+        persistentStore->putBytes(String(foundIndex).c_str(), lastKey, 16);
+        Serial.print(F("Moved key from index "));
+        Serial.print(lastIndex);
+        Serial.print(F(" to "));
+        Serial.println(foundIndex);
+    }
+
+    persistentStore->remove(String(lastIndex).c_str());
+
+    persistentStore->putInt("count", lastIndex);
+    Serial.println(F("Key removed successfully."));
 }
 
 void handleSyncKeys(byte *payload, unsigned int length)
@@ -169,6 +313,14 @@ void mqttCallback(char *topicPtr, byte *payload, unsigned int length)
     {
         handleSyncKeys(payload, length);
     }
+    else if (topic == getAddKeyTopicName())
+    {
+        handleAddKey(payload, length);
+    }
+    else if (topic == getRemoveKeyTopicName())
+    {
+        handleRemoveKey(payload, length);
+    }
     else
     {
         Serial.print("Message arrived [");
@@ -205,8 +357,11 @@ void connectToMqtt()
     {
         Serial.println("Connected to MQTT");
         subscribeToSyncKeys();
+        subscribeToAddAccess();
+        subscribeToRemoveAccess();
         sendDiscoveryRequest();
         logInfo("Device connected to the network");
+        connected = true;
     }
     else
     {

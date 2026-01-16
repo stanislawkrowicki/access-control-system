@@ -5,6 +5,7 @@ import com.stanislawkrowicki.acs.services.AccessService
 import com.stanislawkrowicki.acs.services.UsersWithAccessResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -38,6 +39,12 @@ class AccessController(private val accessService: AccessService) {
     fun grantAccess(@RequestBody request: AccessRequest): ResponseEntity<Unit> {
         accessService.grantAccess(request.userId, request.lockId)
         return ResponseEntity.status(HttpStatus.CREATED).build()
+    }
+
+    @PostMapping("/revoke")
+    fun revokeAccess(@RequestBody request: AccessRequest): ResponseEntity<Unit> {
+        accessService.revokeAccess(request.userId, request.lockId)
+        return ResponseEntity.status(HttpStatus.OK).build()
     }
 }
 

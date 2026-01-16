@@ -11,4 +11,6 @@ interface UserAccessibleLockRepository: JpaRepository<UserAccessibleLock, Long> 
 
     @Query("SELECT ual.user FROM UserAccessibleLock ual WHERE ual.lock.id = :lockId")
     fun findUsersByLockId(lockId: String): List<User>
+
+    fun findByUserIdAndLockId(userId: Long, lockId: String): UserAccessibleLock?
 }

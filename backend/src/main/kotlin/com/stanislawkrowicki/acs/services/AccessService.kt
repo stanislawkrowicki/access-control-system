@@ -7,18 +7,23 @@ import com.stanislawkrowicki.acs.database.repositories.LockRepository
 import com.stanislawkrowicki.acs.database.repositories.UserAccessibleLockRepository
 import com.stanislawkrowicki.acs.database.repositories.UserRepository
 import com.stanislawkrowicki.acs.exceptions.ResourceNotFoundException
+import com.stanislawkrowicki.acs.mqtt.MqttService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.transaction.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
 
+private val logger = KotlinLogging.logger {}
+
 @Service
 class AccessService(
     private val userAccessRepository: UserAccessibleLockRepository,
     private val userRepository: UserRepository,
     private val lockRepository: LockRepository,
-    private val keyRepository: KeyRepository
+    private val keyRepository: KeyRepository,
+    private val mqttService: MqttService
 ) {
     fun canUserAccessLock(userId: Long, lockId: String): Boolean {
         return userAccessRepository.existsByUserIdAndLockId(userId, lockId)
@@ -57,7 +62,36 @@ class AccessService(
             user = user,
             lock = lock
         )
+
+        user.keys.forEach { key ->
+            mqttService.publishToDevice(lockId, "add-key", key.payload);
+        }
+
         return userAccessRepository.save(accessRecord)
+    }
+
+    @Transactional
+    fun revokeAccess(userId: Long, lockId: String): UserAccessibleLock? {
+        val access = userAccessRepository.findByUserIdAndLockId(userId, lockId)
+
+        if (access == null) {
+            return null;
+        }
+
+        val user = userRepository.findByIdOrNull(userId)
+
+        if (user == null) {
+            logger.error { "Error while revoking access. User that does not exist has assigned access" }
+            return null;
+        }
+
+        userAccessRepository.delete(access)
+
+        user.keys.forEach { key ->
+            mqttService.publishToDevice(lockId, "remove-key", key.payload);
+        }
+
+        return access;
     }
 }
 
