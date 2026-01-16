@@ -56,7 +56,7 @@ const fetchKeys = async (
     const rows = data.map((key) => ({
         id: key.id,
         description: key.description,
-        payload: key.payload
+        payload: key.payload.replace(/^0+/, '')
     }));
 
     return {
@@ -159,7 +159,7 @@ export default function UserKeyList() {
     const columns = React.useMemo<GridColDef[]>(
         () => [
             { field: 'description', headerName: 'Description', width: 300 },
-            { field: 'payload', headerName: 'Payload', width: 200 }
+            { field: 'payload', headerName: 'Payload', width: 400 }
         ],
         [handleRowEdit]
     );

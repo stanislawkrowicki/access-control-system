@@ -24,8 +24,8 @@ function validateKey(key: Partial<UserKey>): ValidationResult {
     if (!key.payload) {
         issues = [...issues, { message: 'Payload is required', path: ['payload'] }];
     } else {
-        if (key.payload.length !== 32) {
-            issues = [...issues, { message: 'Payload must be exactly 32 characters', path: ['payload'] }];
+        if (key.payload.length < 8 || key.payload.length > 32) {
+            issues = [...issues, { message: 'Payload must be between 8 and 32 characters', path: ['payload'] }];
         }
         if (!hexRegex.test(key.payload)) {
             issues = [...issues, { message: 'Payload must be valid Hex (0-9, A-F)', path: ['payload'] }];
@@ -44,7 +44,7 @@ async function createKey(data: UserKey) {
         body: JSON.stringify({
             user_id: data.userId,
             description: data.description,
-            payload: data.payload
+            payload: data.payload.padStart(32, '0')
         }),
     });
 
