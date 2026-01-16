@@ -12,6 +12,8 @@
 
 static Preferences *persistentStore = nullptr;
 
+PubSubClient *mqttClient;
+
 uint8_t hexCharToInt(char c)
 {
     if (c >= '0' && c <= '9')
@@ -29,14 +31,65 @@ std::string getSyncKeysTopicName()
     return topic;
 }
 
-void subscribeToSyncKeys(PubSubClient &mqttClient)
+void logInfo(String message)
+{
+    JsonDocument doc;
+
+    doc["message"] = message;
+
+    char payload[256];
+    serializeJson(doc, payload);
+
+    std::string topic = "client/" + DEVICE_NAME + "/log";
+
+    Serial.println("Publishing info");
+    Serial.println(payload);
+    Serial.println(topic.c_str());
+    bool success = mqttClient->publish(topic.c_str(), payload);
+
+    if (!success)
+    {
+        Serial.println("[Error] log info publish failed (returned false).");
+    }
+    else
+    {
+        Serial.println("[Info] Log info publish success.");
+    }
+}
+
+void logOpenAttempt(const uint8_t *key, bool success)
+{
+    // 16 bytes * 2 chars/byte + 1 null terminator = 33 chars
+    char keyHex[33];
+    for (int i = 0; i < 16; i++)
+    {
+        sprintf(&keyHex[i * 2], "%02X", key[i]);
+    }
+
+    String message = "Attempted to open the lock";
+
+    JsonDocument doc;
+
+    doc["key"] = keyHex;
+    doc["had_access"] = success;
+    doc["message"] = message;
+
+    char payload[256];
+    serializeJson(doc, payload);
+
+    std::string topic = "client/" + DEVICE_NAME + "/log";
+
+    mqttClient->publish(topic.c_str(), payload);
+}
+
+void subscribeToSyncKeys()
 {
     std::string topic = getSyncKeysTopicName();
 
     Serial.print("Subscribing to MQTT topic ");
     Serial.println(topic.c_str());
 
-    mqttClient.subscribe(topic.c_str());
+    mqttClient->subscribe(topic.c_str());
 }
 
 void handleSyncKeys(byte *payload, unsigned int length)
@@ -100,9 +153,9 @@ void handleSyncKeys(byte *payload, unsigned int length)
     }
 }
 
-void sendDiscoveryRequest(PubSubClient &mqttClient)
+void sendDiscoveryRequest()
 {
-    mqttClient.publish("discovery", DEVICE_NAME.c_str());
+    mqttClient->publish("discovery", DEVICE_NAME.c_str());
 }
 
 void mqttCallback(char *topicPtr, byte *payload, unsigned int length)
@@ -131,51 +184,56 @@ void mqttCallback(char *topicPtr, byte *payload, unsigned int length)
     }
 }
 
-void setupMqtt(PubSubClient &mqttClient, Preferences &persistence)
+void setupMqtt(WiFiClient &wifiClient, Preferences &persistence)
 {
-    mqttClient.setKeepAlive(60);
-    mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
-    mqttClient.setCallback(mqttCallback);
+    mqttClient = new PubSubClient(wifiClient);
+
+    mqttClient->setKeepAlive(60);
+    mqttClient->setServer(MQTT_SERVER, MQTT_PORT);
+    mqttClient->setCallback(mqttCallback);
 
     persistentStore = &persistence;
 }
 
-void connectToMqtt(PubSubClient &mqttClient)
+void connectToMqtt()
 {
-    if (mqttClient.connected())
+    if (mqttClient->connected())
         return;
 
     Serial.print("Attempting MQTT connection...");
-    if (mqttClient.connect(DEVICE_NAME.c_str()))
+    if (mqttClient->connect(DEVICE_NAME.c_str()))
     {
         Serial.println("Connected to MQTT");
-        subscribeToSyncKeys(mqttClient);
-        sendDiscoveryRequest(mqttClient);
+        subscribeToSyncKeys();
+        sendDiscoveryRequest();
+        logInfo("Device connected to the network");
     }
     else
     {
         Serial.print("failed, rc=");
-        Serial.print(mqttClient.state());
+        Serial.print(mqttClient->state());
     }
 }
 
-void handleMqtt(PubSubClient &mqttClient)
+void handleMqtt()
 {
     if (WiFi.status() != WL_CONNECTED)
     {
         Serial.println("WiFi dropped!");
         connectWifi();
-        connectToMqtt(mqttClient);
+        connectToMqtt();
     }
 
-    if (!mqttClient.connected())
+    if (!mqttClient->connected())
     {
         Serial.println("Lost MQTT connection, reconnecting...");
         delay(1000);
     }
 
-    if (!mqttClient.loop())
+    if (!mqttClient->loop())
     {
         Serial.println("MQTT loop failed!");
+        Serial.print("Error code: ");
+        Serial.println(mqttClient->state());
     }
 }

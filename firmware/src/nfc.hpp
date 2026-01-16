@@ -1,6 +1,8 @@
 #pragma once
 #include <Adafruit_PN532.h>
 
+#include "mqtt.hpp"
+
 #if __has_include("secrets.hpp")
 #include "secrets.hpp"
 #else
@@ -58,6 +60,8 @@ void listenToNFC(void *pvParameters)
         success = nfc->readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
 
         bool opened = false;
+        bool shouldLog = false;
+        uint8_t keyUsed[16];
 
         if (success)
         {
@@ -67,6 +71,8 @@ void listenToNFC(void *pvParameters)
             nfc->PrintHex(uid, uidLength);
             Serial.println("");
 
+            shouldLog = true;
+
             if (uidLength == 4)
             {
                 success = nfc->mifareclassic_AuthenticateBlock(uid, uidLength, 4, 0, SECRET_KEY_A);
@@ -74,14 +80,13 @@ void listenToNFC(void *pvParameters)
                 if (success)
                 {
                     Serial.println("Sector 1 (Blocks 4..7) has been authenticated");
-                    uint8_t data[16];
 
-                    success = nfc->mifareclassic_ReadDataBlock(4, data);
+                    success = nfc->mifareclassic_ReadDataBlock(4, keyUsed);
 
                     if (success)
                     {
                         Serial.println("Reading Block 4:");
-                        nfc->PrintHexChar(data, 16);
+                        nfc->PrintHexChar(keyUsed, 16);
                         Serial.println("");
 
                         int storedKeysCount = keyStorage->getInt("count");
@@ -90,7 +95,7 @@ void listenToNFC(void *pvParameters)
                             uint8_t storedKey[16];
                             keyStorage->getBytes(String(i).c_str(), storedKey, 16);
 
-                            if (memcmp(data, storedKey, 16) == 0)
+                            if (memcmp(keyUsed, storedKey, 16) == 0)
                             {
                                 opened = true;
                                 openLock();
@@ -114,6 +119,9 @@ void listenToNFC(void *pvParameters)
                 Serial.println("Unknown tag type!");
             }
         }
+
+        if (shouldLog)
+            logOpenAttempt(keyUsed, opened);
 
         if (!opened)
         {

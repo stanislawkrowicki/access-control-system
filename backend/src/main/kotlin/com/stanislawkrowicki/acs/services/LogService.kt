@@ -4,6 +4,8 @@ import com.stanislawkrowicki.acs.database.models.Lock
 import com.stanislawkrowicki.acs.database.models.Log
 import com.stanislawkrowicki.acs.database.models.User
 import com.stanislawkrowicki.acs.database.repositories.LogRepository
+import com.stanislawkrowicki.acs.database.repositories.UserAccessibleLockRepository
+import com.stanislawkrowicki.acs.database.repositories.UserRepository
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.springframework.data.domain.Page
@@ -13,16 +15,17 @@ import org.springframework.stereotype.Service
 @Service
 class LogService(
     private val logRepository: LogRepository,
-    private val entityManager: EntityManager
+    private val entityManager: EntityManager,
+    private val userRepository: UserRepository
 ) {
 
     @Transactional
-    fun new(userId: Long, lockId: String, hadAccess: Boolean?, message: String?) {
-        val userProxy = entityManager.getReference(User::class.java, userId)
+    fun new(keyPayload: String, lockId: String, hadAccess: Boolean?, message: String?) {
+        val user = userRepository.findByKeysPayload(keyPayload)
         val lockProxy = entityManager.getReference(Lock::class.java, lockId)
 
         logRepository.save(Log(
-            user = userProxy,
+            user = user,
             lock = lockProxy,
             hadAccess = hadAccess,
             message = message

@@ -14,7 +14,6 @@
 
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 WiFiClient wifiClient;
-PubSubClient mqttClient(wifiClient);
 
 Preferences storedKeys;
 
@@ -48,8 +47,8 @@ void setup(void)
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    setupMqtt(mqttClient, storedKeys);
-    connectToMqtt(mqttClient);
+    setupMqtt(wifiClient, storedKeys);
+    connectToMqtt();
 
     wifiConnected = true;
   }
@@ -68,6 +67,6 @@ void loop(void)
 {
   if (wifiConnected)
   {
-    handleMqtt(mqttClient);
+    handleMqtt();
   }
 }

@@ -10,7 +10,7 @@ private val logger = KotlinLogging.logger {}
 
 data class LogMessage(
     val hadAccess: Boolean?,
-    val userId: Long?,
+    val key: String?,
     val message: String?
 )
 
@@ -22,15 +22,15 @@ class LogHandler(
     override fun handle(deviceId: String, payload: ByteArray) {
         val log = objectMapper.readValue<LogMessage>(payload)
 
-        if (log.userId == null) {
+        if (log.key == null) {
             if (log.message == null) {
-                logger.error { "Received log without user and message " }
+                logger.error { "Received log without key and message " }
                 return
             }
 
             logService.new(deviceId, log.message)
         } else {
-            logService.new(log.userId, deviceId, log.hadAccess, log.message)
+            logService.new(log.key, deviceId, log.hadAccess, log.message)
         }
     }
 }
