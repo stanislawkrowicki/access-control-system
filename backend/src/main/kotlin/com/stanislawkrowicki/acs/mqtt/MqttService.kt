@@ -114,6 +114,8 @@ class MqttService(
                     return@callback
                 }
 
+                deviceStatusService.markAsActive(deviceId)
+
                 val messageType = MqttClientMessageType.entries.find { it.string == splitTopic[2] }
 
                 if (messageType == null) {
