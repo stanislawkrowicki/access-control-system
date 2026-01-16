@@ -6,6 +6,8 @@ import com.stanislawkrowicki.acs.database.models.User
 import com.stanislawkrowicki.acs.database.repositories.LogRepository
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 
 @Service
@@ -49,5 +51,9 @@ class LogService(
 
     fun findAllForLock(lockId: String): List<Log> {
         return logRepository.findByLockId(lockId)
+    }
+
+    fun searchLogs(userId: Long?, username: String?, lockId: String?, pageable: Pageable): Page<Log> {
+        return logRepository.searchLogs(userId, username, lockId, pageable)
     }
 }

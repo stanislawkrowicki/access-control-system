@@ -21,6 +21,7 @@ import UserKeyList from "./components/UserKeyList.tsx";
 import UserKeyCreate from "./components/UserKeyCreate.tsx";
 import LockAccessList from "./components/LockAccessList.tsx";
 import LockAccessGrant from "./components/LockAccessGrant.tsx";
+import LogList from "./components/LogList.tsx";
 
 const router = createHashRouter([
     {
@@ -57,6 +58,10 @@ const router = createHashRouter([
             {
                 path: '/users/:userId/keys/new',
                 Component: UserKeyCreate
+            },
+            {
+                path: '/logs',
+                Component: LogList
             },
             {
                 path: '*',
