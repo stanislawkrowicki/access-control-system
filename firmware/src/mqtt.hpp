@@ -352,6 +352,10 @@ void connectToMqtt()
     if (mqttClient->connected())
         return;
 
+    connected = false;
+
+    digitalWrite(WIFI_FAIL_PIN, HIGH);
+
     Serial.print("Attempting MQTT connection...");
     if (mqttClient->connect(DEVICE_NAME.c_str()))
     {
@@ -378,13 +382,11 @@ void handleMqtt()
         Serial.println("WiFi dropped!");
         connectWifi();
         connectToMqtt();
-        digitalWrite(WIFI_FAIL_PIN, HIGH);
     }
 
     if (!mqttClient->connected())
     {
         Serial.println("Lost MQTT connection, reconnecting...");
-        digitalWrite(WIFI_FAIL_PIN, HIGH);
         delay(1000);
     }
 
