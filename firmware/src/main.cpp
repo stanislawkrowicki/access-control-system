@@ -27,6 +27,9 @@ void setup(void)
     ;
 
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(OPEN_LED_PIN, OUTPUT);
+  pinMode(CLOSE_LED_PIN, OUTPUT);
+  pinMode(WIFI_FAIL_PIN, OUTPUT);
 
   if (!setupNFC(nfc))
   {
@@ -34,6 +37,9 @@ void setup(void)
     while (true)
       ;
   }
+
+  digitalWrite(OPEN_LED_PIN, HIGH);
+  digitalWrite(CLOSE_LED_PIN, HIGH);
 
   storedKeys.begin("keys", false);
 
@@ -55,12 +61,15 @@ void setup(void)
   else
   {
     Serial.println("Failed to connect to WiFi. Device will use stored access keys until reboot.");
+    digitalWrite(WIFI_FAIL_PIN, HIGH);
   }
 
   xTaskCreatePinnedToCore(listenToNFC, "NFC_Task", 4096, static_cast<void *>(&nfc), 1, nullptr, 0);
 
   Serial.println("");
   Serial.println("Ready to receive NFC");
+
+  digitalWrite(OPEN_LED_PIN, LOW);
 }
 
 void loop(void)

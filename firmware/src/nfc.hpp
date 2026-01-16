@@ -27,6 +27,9 @@ void openLock()
     Serial.println("Open!");
 
     digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(CLOSE_LED_PIN, LOW);
+    digitalWrite(OPEN_LED_PIN, HIGH);
+
     vTaskDelay(pdMS_TO_TICKS(150));
 
     for (int i = 0; i <= 3; ++i)
@@ -36,6 +39,10 @@ void openLock()
         digitalWrite(BUZZER_PIN, LOW);
         vTaskDelay(pdMS_TO_TICKS(150));
     }
+
+    vTaskDelay(pdMS_TO_TICKS(300));
+    digitalWrite(OPEN_LED_PIN, LOW);
+    digitalWrite(CLOSE_LED_PIN, HIGH);
 }
 
 void accessDenied()
