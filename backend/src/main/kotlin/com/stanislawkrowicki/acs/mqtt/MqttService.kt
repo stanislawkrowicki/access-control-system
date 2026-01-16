@@ -143,10 +143,10 @@ class MqttService(
     private fun sendKeysToDevice(deviceId: String) {
         val payloads = keyRepository.findAllKeyPayloadsByLockId(deviceId)
 
-        payloads.ifEmpty {
-            logger.info { "No keys to sync for device $deviceId" }
-            return
-        }
+//        payloads.ifEmpty {
+//            logger.info { "No keys to sync for device $deviceId" }
+//            return
+//        }
 
         try {
             val jsonPayload = objectMapper.writeValueAsString(payloads)
