@@ -261,7 +261,10 @@ void handleSyncKeys(byte *payload, unsigned int length)
         Serial.println(" keys.");
 
         if (array.size() == 0)
+        {
+            persistentStore->putInt("count", 0);
             return;
+        }
 
         int i = 0;
 
