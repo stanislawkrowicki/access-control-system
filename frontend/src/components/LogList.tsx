@@ -202,8 +202,11 @@ export default function LogList() {
                 field: 'had_access',
                 headerName: 'Accessed',
                 width: 100,
-                renderCell: (params) => (
-                    <Box sx={{
+                renderCell: (params) => {
+                    if (params.value === null) return null
+
+                    return (
+                        <Box sx={{
                         color: params.value ? 'success.main' : 'error.main',
                         fontWeight: 'bold',
                         display: 'flex',
@@ -211,8 +214,9 @@ export default function LogList() {
                         height: '100%'
                     }}>
                         {params.value ? 'Yes' : 'No'}
-                    </Box>
-                )
+                        </Box>
+                    )
+                }
             },
             { field: 'message', headerName: 'Message', width: 400}
         ],
