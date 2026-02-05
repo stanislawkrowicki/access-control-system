@@ -1,10 +1,11 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <Preferences.h>
+#include <Adafruit_PN532.h>
 
-#include "nfc.hpp"
 #include "wifi.hpp"
 #include "mqtt.hpp"
+#include "access_controller.hpp"
 
 #if __has_include("secrets.hpp")
 #include "secrets.hpp"
@@ -15,9 +16,15 @@
 Adafruit_PN532 nfc(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS);
 WiFiClient wifiClient;
 
-Preferences storedKeys;
+Preferences keyStorage;
 
-bool wifiConnected = false;
+AccessController accessController(nfc, keyStorage, OPEN_LED_PIN, CLOSE_LED_PIN, BUZZER_PIN);
+
+void enableConnectingLeds()
+{
+  digitalWrite(OPEN_LED_PIN, HIGH);
+  digitalWrite(CLOSE_LED_PIN, HIGH);
+}
 
 void setup(void)
 {
@@ -26,24 +33,18 @@ void setup(void)
   while (!Serial)
     ;
 
-  pinMode(BUZZER_PIN, OUTPUT);
-  pinMode(OPEN_LED_PIN, OUTPUT);
-  pinMode(CLOSE_LED_PIN, OUTPUT);
   pinMode(WIFI_FAIL_PIN, OUTPUT);
 
-  if (!setupNFC(nfc))
+  keyStorage.begin("keys", false);
+
+  if (!accessController.begin())
   {
-    Serial.println("Failed to connect NFC module! Halting...");
+    Serial.println("NFC setup failed! Halting.");
     while (true)
       ;
   }
 
-  digitalWrite(OPEN_LED_PIN, HIGH);
-  digitalWrite(CLOSE_LED_PIN, HIGH);
-
-  storedKeys.begin("keys", false);
-
-  setNFCPersistentStorage(storedKeys);
+  enableConnectingLeds();
 
   const bool wifiSuccess = connectWifi();
 
@@ -53,10 +54,8 @@ void setup(void)
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
 
-    setupMqtt(wifiClient, storedKeys);
+    setupMqtt(wifiClient, keyStorage);
     connectToMqtt();
-
-    wifiConnected = true;
   }
   else
   {
@@ -64,12 +63,10 @@ void setup(void)
     digitalWrite(WIFI_FAIL_PIN, HIGH);
   }
 
-  xTaskCreatePinnedToCore(listenToNFC, "NFC_Task", 4096, static_cast<void *>(&nfc), 1, nullptr, 0);
+  accessController.startTask();
 
   Serial.println("");
   Serial.println("Ready to receive NFC");
-
-  digitalWrite(OPEN_LED_PIN, LOW);
 }
 
 void loop(void)

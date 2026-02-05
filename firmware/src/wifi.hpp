@@ -10,6 +10,8 @@
 
 constexpr uint8_t MAX_CONNECTION_ATTEMPTS = 20;
 
+bool wifiConnected = false;
+
 bool connectWifi()
 {
 
@@ -34,6 +36,8 @@ bool connectWifi()
     }
 
     Serial.println("");
+
+    wifiConnected = success;
 
     return success;
 }
