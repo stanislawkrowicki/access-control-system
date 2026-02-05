@@ -56,7 +56,7 @@ const fetchKeys = async (
     const rows = data.map((key) => ({
         id: key.id,
         description: key.description,
-        payload: key.payload.replace(/^0+/, '')
+        payload: key.payload.replace(/^0+/, '') || "<empty>"
     }));
 
     return {
