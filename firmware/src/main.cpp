@@ -4,8 +4,9 @@
 #include <Adafruit_PN532.h>
 
 #include "wifi.hpp"
-#include "mqtt.hpp"
 #include "access_controller.hpp"
+#include "mqtt_handler.hpp"
+#include "logger.hpp"
 
 #if __has_include("secrets.hpp")
 #include "secrets.hpp"
@@ -19,6 +20,7 @@ WiFiClient wifiClient;
 Preferences keyStorage;
 
 AccessController accessController(nfc, keyStorage, OPEN_LED_PIN, CLOSE_LED_PIN, BUZZER_PIN);
+MqttHandler mqttHandler(wifiClient, keyStorage);
 
 void enableConnectingLeds()
 {
@@ -44,6 +46,8 @@ void setup(void)
       ;
   }
 
+  Logger::init(mqttHandler);
+
   enableConnectingLeds();
 
   const bool wifiSuccess = connectWifi();
@@ -53,9 +57,7 @@ void setup(void)
     Serial.println("WiFi connected!");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-
-    setupMqtt(wifiClient, keyStorage);
-    connectToMqtt();
+    mqttHandler.begin();
   }
   else
   {
@@ -71,8 +73,5 @@ void setup(void)
 
 void loop(void)
 {
-  if (wifiConnected)
-  {
-    handleMqtt();
-  }
+  mqttHandler.loop();
 }
