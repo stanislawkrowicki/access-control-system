@@ -29,5 +29,7 @@ private:
     bool authenticateTag(uint8_t *uid, uint8_t uidLength, uint8_t *keyUsedOut);
     void setDefaultLedStates();
 
+    void logOpenAttempt(const uint8_t *key, bool success);
+
     static void taskEntry(void *pvParameters);
 };

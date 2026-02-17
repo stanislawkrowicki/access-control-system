@@ -1,4 +1,5 @@
 #include "access_controller.hpp"
+#include "logger.hpp"
 
 #if __has_include("secrets.hpp")
 #include "secrets.hpp"
@@ -86,13 +87,12 @@ void AccessController::loop()
             if (uidLength == 4)
             {
                 accessGranted = authenticateTag(uid, uidLength, keyUsed);
+                logOpenAttempt(keyUsed, accessGranted);
             }
             else
             {
                 Serial.println("Unknown tag type length!");
             }
-
-            // logOpenAttempt(keyUsed, accessGranted);
 
             if (accessGranted)
             {
@@ -155,6 +155,22 @@ void AccessController::setDefaultLedStates()
 {
     digitalWrite(closeLedPin, HIGH);
     digitalWrite(openLedPin, LOW);
+}
+
+void AccessController::logOpenAttempt(const uint8_t *key, bool success)
+{
+    char keyHex[33];
+    for (int i = 0; i < 16; i++)
+    {
+        sprintf(&keyHex[i * 2], "%02X", key[i]);
+    }
+
+    JsonDocument doc;
+    doc["key"] = keyHex;
+    doc["had_access"] = success;
+    doc["message"] = "Attempted to open the lock";
+
+    Logger::info(doc);
 }
 
 void AccessController::unlockSequence()
