@@ -16,6 +16,7 @@ public:
     // Logs to Serial and MQTT
     static void info(const String &message);
     static void info(const String &topic, const String &payload);
+    static void info(const JsonDocument &json);
 
     // Logs to Serial
     // TODO: Implement error logs server-side

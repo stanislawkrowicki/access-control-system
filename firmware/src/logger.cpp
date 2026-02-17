@@ -44,6 +44,24 @@ void Logger::info(const String &topic, const String &payload)
     mqttHandler->sendMessage(topic, payload.c_str());
 }
 
+void Logger::info(const JsonDocument &json)
+{
+    if (!json["message"])
+    {
+        error("JSON log should at least have 'message' field!");
+        return;
+    }
+
+    char payload[512];
+    serializeJson(json, payload);
+
+    Serial.print("[JSON INFO]");
+    Serial.println(payload);
+
+    const String topic = getLogTopic();
+    mqttHandler->sendMessage(topic, payload);
+}
+
 void Logger::error(const String &message)
 {
     Serial.print("[ERROR] ");
