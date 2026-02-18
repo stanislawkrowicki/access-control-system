@@ -22,11 +22,13 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import PageContainer from './PageContainer';
+import dayjs from "dayjs";
 
 const INITIAL_PAGE_SIZE = 10;
 
 interface LogApiData {
     id: number,
+    timestamp: Date,
     user: {
         id: number,
         username: string
@@ -91,6 +93,7 @@ const fetchLogs = async (
 
     const rows = data.content.map((log) => ({
             id: log.id,
+            timestamp: log.timestamp,
             user: {
                 id: log.user?.id,
                 username: log.user?.username
@@ -191,6 +194,12 @@ export default function LogList() {
                 headerName: 'Lock name',
                 width: 200,
                 valueGetter: (_, row) => row.lock?.name
+            },
+            {
+                field: 'timestamp',
+                headerName: 'Timestamp',
+                width: 200,
+                valueGetter: (_, row) => dayjs(row.timestamp).format('YYYY-MM-DD HH:mm')
             },
             {
                 field: 'username',
